@@ -206,11 +206,11 @@ class RobotVision(Node):
         self._get_result_future.add_done_callback(self.get_result_callback)
         
     def feedback_callback(self, feedback_msg): 
-        self.logger.info(f'Feedback: {feedback_msg.feedback.progress}')
+        #self.logger.info(f'Feedback: {feedback_msg.feedback.progress}')
+        pass
         
     def get_result_callback(self, future):
         result = future.result().result
-        self.logger.info(f'Result: {result.status}')
     
         if result.status == "Target Reached":
             self.last_moved = self.get_clock().now() 
@@ -290,13 +290,15 @@ class RobotVision(Node):
                     chosen_diameter = -1
                     x = data[i].x
                     
-                    self.logger.info(self.rotate_count)
                     
                     distance = self.calculate_distance(diameter)
                     calculated_x, calculated_y = self.calculate_position(self.x, self.y, distance)
                     
+                    
+                    
                     if self.last_moved:
-                       if (self.get_clock().now() - self.last_moved).nanoseconds / 10e9 > 150:
+                       self.logger.info("Time since last moved: " + str((self.get_clock().now() - self.last_moved).nanoseconds /10e9))
+                       if (self.get_clock().now() - self.last_moved).nanoseconds / 10e9 > 20:
                            self.state = State.RANDOM_WALK
                            return
                     
@@ -343,16 +345,11 @@ class RobotVision(Node):
             case State.ALIGNED_WITH_TARGET:
                 self.set_to_busy(State.ALIGNED_WITH_TARGET)
                 distance = self.calculate_distance(self.largest_diameter)
-                self.logger.info("diameter: " + str(self.largest_diameter))
-                self.logger.info("distance: " + str(distance))
                 self.rotate_count = 0
                 
                 new_x, new_y = self.calculate_position(self.x, self.y, distance)
                 self.x = new_x
                 self.y = new_y
-                
-                self.logger.info(new_x)
-                self.logger.info(new_y)
                 
                 msg = Move.Goal()
                 msg.x = new_x
@@ -398,7 +395,6 @@ class RobotVision(Node):
                 msg.x = new_x
                 msg.y = new_y
                 
-                self.logger.info("COLLISION AVOIDANCE TRIGGERED")
                 
                 self.collision_direction = None
                 self._send_goal_future = self.move_client.send_goal_async(msg, feedback_callback=self.feedback_callback)
